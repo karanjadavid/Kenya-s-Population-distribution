@@ -1,0 +1,177 @@
+#TREND OF POPULATION GROWTH IN KENYA 
+
+#setting up environment
+library(animation)
+library(gganimate)
+library(janitor)
+library(lubridate)
+library(tidyverse)
+library(wpp2019)
+
+#load data
+data(popF)
+data(popM)
+
+
+#explore data sets.
+#popF - female population, popM - male population.
+str(popF)
+str(popM)
+
+
+
+
+# Transform the data 
+# Country of interest - Kenya code 404.
+# Country codes derived from https://en.wikipedia.org/wiki/ISO_3166-1_numeric.
+
+
+
+
+
+#Kenya's Female population
+pop_female_kenya <- popF %>%
+  gather(Year, popF, '1950'|'1955'|'1960'|'1965'|'1970'|'1975'
+         |'1980'|'1985'|'1990'|'1995'|'2000'|'2005'
+         |'2010'|'2015'|'2020') %>%
+  clean_names() %>% 
+  rename(pop_in_thousands = pop_f, country = name) %>% 
+  filter(country_code %in% c(404)) %>%
+  select(country, age, year, pop_in_thousands) 
+
+#add a gender column
+pop_female_kenya$gender <- "female"
+
+#view a sample of the new data frame
+head(pop_female_kenya)
+
+
+
+
+
+#Male population
+pop_male_kenya <- popM %>%
+  gather(Year, popM, '1950'|'1955'|'1960'|'1965'|'1970'|'1975'
+         |'1980'|'1985'|'1990'|'1995'|'2000'|'2005'
+         |'2010'|'2015'|'2020') %>%
+  clean_names() %>% 
+  rename(pop_in_thousands = pop_m, country = name) %>% 
+  filter(country_code %in% c(404)) %>%
+  select(country, age, year, pop_in_thousands) 
+
+#add a gender column
+pop_male_kenya$gender <- "male"
+
+#view a sample of the new data frame
+head(pop_male_kenya)
+
+
+
+
+
+#combine male and female population
+total_pop <- rbind(pop_female_kenya, pop_male_kenya)
+
+
+
+
+#change data types 
+
+#1) age to factor
+total_pop$age <- factor(total_pop$age, levels = c("0-4", "5-9", "10-14", 
+                                                  "15-19", "20-24", "25-29",
+                                                  "30-34", "35-39", "40-44",
+                                                  "45-49", "50-54", "55-59",
+                                                  "60-64", "65-69", "70-74",
+                                                  "75-79", "80-84", "85-89",
+                                                  "90-94", "95-99", "100+"),
+                        order = TRUE)
+
+#2)gender to factor
+total_pop$gender <- factor(total_pop$gender) 
+
+#3) year to numeric
+total_pop$year <- as.Date(total_pop$year, "%Y")
+
+total_pop$year <- year(total_pop$year)
+
+#view the correct data types 
+str(total_pop)
+
+
+
+
+#Prepare the data
+kenya_population <- total_pop %>%
+  mutate(pop = pop_in_thousands * 1000,
+         population = ifelse(gender == "female", 1, -1)*pop)
+
+#plot Kenya's population distribution between male and female in 2020
+
+
+kenya_population_plot <- kenya_population %>% 
+  filter(year == 2020) %>% 
+  ggplot(aes(x = age, y = population, fill = gender))+ 
+  geom_bar(stat="identity") +
+  scale_y_continuous(breaks=seq(-4000000, 4000000, 1000000),
+                     labels =c('4 Mil','3 Mil','2 Mil', '1 Mil',
+                               '0','1 Mil','2 Mil','3 Mil', '4 Mil'),
+                     limits = c(-4000000, 4000000)) +
+  xlab("Age Groups") +
+  coord_flip() +
+  
+  labs(title ='Population in Kenya in 2020') +
+  scale_fill_manual(values=c('deeppink1', 'navy blue'))+
+  theme(plot.background = element_rect(fill = "limegreen", 
+                                       color = NA),
+        panel.background = element_rect(fill = "limegreen"),
+        axis.text = element_text(color = "white"),
+        axis.title = element_text(color = "white", size = 12),
+        plot.title = element_text(color = "white"),
+        # plot.margin = unit(c(2,1.5,1,1), "cm"),
+        panel.grid = element_line(color = "#4d4d4d"))
+
+  
+ kenya_population_plot
+
+  
+
+
+ 
+ 
+ 
+ #visualize the data over the years in a gif
+ 
+ kenya_population_gif <- ggplot(data = kenya_population,
+                 aes(x = age, y = population, fill = gender))+
+   geom_bar(stat='identity') + 
+   scale_y_continuous(breaks=seq(-4000000, 4000000, 1000000),
+                      labels =c('4 Mil','3 Mil','2 Mil', '1 Mil',
+                                '0','1 Mil','2 Mil','3 Mil', '4 Mil'),
+                      limits = c(-4000000, 4000000)) +
+   xlab("Age Groups") + 
+   ylab("Population") +  
+   coord_flip() + 
+   labs(fill = "gender") +
+   scale_fill_manual(values=c('deeppink1', 'blue2')) +
+   #theme_bw()+
+   theme(plot.background = element_rect(fill = "white", color = NA),
+         panel.background = element_rect(fill = "chartreuse"),
+         axis.text = element_text(color = "black"),
+         axis.title = element_text(color = "black", size = 12),
+         plot.title = element_text(color = "black"),
+         panel.grid = element_line(color = "grey80")) + 
+   transition_time(year) +
+   labs(title = "{as.integer(frame_time)} Population in Kenya")
+
+ 
+kenya_population_gif
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
